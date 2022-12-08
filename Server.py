@@ -1,7 +1,7 @@
 import socket
 #have python 2.9
 SERVER_HOST = "0.0.0.0"
-SERVER_PORT = 80
+SERVER_PORT = 2424
 BUFFER_SIZE = 1024 * 128 # 128KB max size of messages, feel free to increase
 # separator string for sending 2 messages in one go
 SEPARATOR = "<sep>"
