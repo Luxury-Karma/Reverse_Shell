@@ -1,11 +1,6 @@
 import socket
-import threading
 import time
-import multiprocessing
-import os
-
-import Interface as Itf
-
+import threading
 
 class SocketHandler:  # TODO COMPLETE REWORK
     def __init__(self, server_host, server_port):
@@ -70,28 +65,14 @@ class ClientHandler:  # TODO COMPLETE REWORK
 
             # send the command to the client...
             self.socket.send((self.command.encode()))
+
             if self.command.lower() == 'exit':
                 break  # ...then if the command is exit, just break out of the loop
 
             # retrieve command results then split command output and current directory
             self.last_response, self.current_dir, self.id = self.socket.recv(self.BUFFER_SIZE) \
                 .decode(encoding=self.ENCODING).split(self.SEPARATOR)
+            self.command = ''
 
     def close(self):
         self.socket.close()  # close server connection
-
-
-
-
-if __name__ == '__main__':
-    multiprocessing.set_start_method('spawn', force=True)
-    SERVER_HOST = "0.0.0.0"
-    SERVER_PORT = 2424
-
-    sock_handler = SocketHandler(server_host=SERVER_HOST, server_port=SERVER_PORT)
-    cli_handler = Itf.Cli(sock_handler)
-
-    # TODO handle thread in any other way seriously
-    threading.Thread(target=sock_handler.looker).start()
-    threading.Thread(target=sock_handler.handle).start()
-    threading.Thread(target=cli_handler.handle).start()

