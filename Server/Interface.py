@@ -33,7 +33,7 @@ class Cli:  # .......          s    TODO COMPLETE REWORK
                 continue
 
             if cmd_root in ['clear', 'cls']:
-                self.clear()
+                self.clear()  # DONT WORK ON PYCHARM
                 continue
 
             if cmd_root in ['list', 'lst', 'ls']:
@@ -85,6 +85,8 @@ class Cli:  # .......          s    TODO COMPLETE REWORK
             tail_lst = split_cmd[1]
             #tail_lst = [e for e in split_cmd[1].split('-') if e]
         return root, tail_lst
+
+
     def exit_context(self):
         """
             SET context item to default value
