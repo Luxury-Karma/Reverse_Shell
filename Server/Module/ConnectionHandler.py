@@ -8,7 +8,7 @@ class SocketHandler:  # TODO COMPLETE REWORK
         self.server_port = server_port
         self.connection_list = []
 
-    def handle(self):
+    def run(self):
         # create a socket object
         sock = socket.socket()
         # bind the socket to all IP addresses of this host
@@ -29,7 +29,7 @@ class SocketHandler:  # TODO COMPLETE REWORK
                     elem = self.connection_list[i]
                     if not __con_lst.__contains__(elem[0]):
                         # Todo make sure all thread are generated at the same place
-                        elem[1] = threading.Thread(target=elem[0].handle).start()
+                        elem[1] = threading.Thread(target=elem[0].run).start() # TODO MOVE THE THREAD HANDLING IN THREAD HANDLER
 
                         __con_lst.append(elem[0])
                         self.connection_list[i] = elem
@@ -47,10 +47,9 @@ class ClientHandler:  # TODO COMPLETE REWORK
         self.command = ''
         self.current_dir = ''
         self.last_response = ''
-
         self.id = None
 
-    def handle(self):
+    def run(self):
 
         # receiving the current working directory of the client
         self.current_dir, self.id = self.socket.recv(self.BUFFER_SIZE) \

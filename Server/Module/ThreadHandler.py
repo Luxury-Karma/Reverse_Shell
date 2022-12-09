@@ -14,5 +14,5 @@ def main():
 
     # TODO handle thread in any other way seriously
     threading.Thread(target=sock_handler.looker).start()
-    threading.Thread(target=sock_handler.handle).start()
+    threading.Thread(target=sock_handler.run).start()
     threading.Thread(target=cli_handler.handle).start()
