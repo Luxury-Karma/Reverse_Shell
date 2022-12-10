@@ -1,6 +1,8 @@
+import datetime
 import socket
 import time
-import threading
+from Server.Module import ThreadHandler as ThHa
+
 
 class SocketHandler:  # TODO COMPLETE REWORK
 
@@ -10,7 +12,7 @@ class SocketHandler:  # TODO COMPLETE REWORK
         self.connection_list = []
         self.health = None
 
-    def handle(self):
+    def handler(self):
         # create a socket object
         sock = socket.socket()
         # bind the socket to all IP addresses of this host
@@ -22,28 +24,13 @@ class SocketHandler:  # TODO COMPLETE REWORK
             current_client = ClientHandler(client_sock, client_ip)
             self.connection_list.append([current_client, None, None])
 
-    def looker(self):
-        __con_lst = []  # Private look up table
+    def looker(self, time_out=1):
+
         while True:
-            # Compare connection_list with expected connection
-            if not __con_lst == self.connection_list:  # Todo handle this better (?event?)
-                for i in range(len(self.connection_list)):
-                    elem = self.connection_list[i]
-                    if not __con_lst.__contains__(elem[0]):
-                        # Todo make sure all thread are generated at the same place
-                        elem[1] = threading.Thread(target=elem[0].handle).start()
-        __con_lst = []  # Private look up table
-        while True:
-            # Compare connection_list with expected connection
-            if not __con_lst == self.connection_list:  # Todo handle this better (?event?)
-                for i in range(len(self.connection_list)):
-                    elem = self.connection_list[i]
-                    if not __con_lst.__contains__(elem[0]):
-                        # Todo make sure all thread are generated at the same place
-                        elem[1] = threading.Thread(target=elem[0].run).start() # TODO MOVE THE THREAD HANDLING IN THREAD HANDLER
-
-
-
+            for connection in self.connection_list:
+                if not connection[1]:
+                    connection[1] = ThHa.create_Thread(connection[0].handler)
+            time.sleep(time_out)
 
 
 class ClientHandler:  # TODO COMPLETE REWORK
@@ -60,53 +47,107 @@ class ClientHandler:  # TODO COMPLETE REWORK
         self.id = None
         self.health = None
 
-    def handle(self):
+    def set_command(self, command):
+        self.command = command
+        return bool(self.health)
 
+    def set_last_response(self, message=''):
+        self.last_response = message
+        return bool(self.health)
+
+    def get_last_response(self):
+        return self.last_response
+
+    def get_id(self):
+        return self.id
+
+    def get_health(self, update_health=False):
+        if update_health:
+            self.update_health_status()
+        if self.health:
+            out = datetime.datetime.now().timestamp() - self.health
+            if out < 10:
+                return float(str(out)[:4])
+            else:
+                return int(out)
+        else:
+            return -1
+
+    def get_current_dir(self):
+        return self.current_dir
+
+    def handler(self):
         # receiving the current working directory of the client
-        self.current_dir, self.id = self.socket.recv(self.BUFFER_SIZE) \
-            .decode(encoding=self.ENCODING).split(self.SEPARATOR)
-
+        self.last_response, self.current_dir, self.id = self.retrieve_data()
         while True:
-            self.health_status()
-            # command = input(f'{current_dir} $> ')
-            if not self.command:  # look if a command have been push
-                time.sleep(1)
-                continue  # noting to do
 
-           
+            # Look if a command have been set to be push, if not get health
+            if not self.command:
+                self.update_health_status()
+                continue
+            # Strip command of leading and ending space (make ' exec dir' work)
+            self.command = self.command.strip()
             if self.command.lower() == 'exit':
                 break  # ...then if the command is exit, just break out of the loop
 
-            # retrieve command results then split command output and current directory
-            if self.command.lower() == 'health':
-                try:
-                    self.health = self.socket.recv(self.BUFFER_SIZE).decode(encoding=self.ENCODING).split(self.SEPARATOR)
-                    self.health == bool(self.health)
-                    if self.health :
-                        continue
-                except :
-                    print("no answer connection dead")
-                    self.health = False
-                continue
-            self.last_response, self.current_dir, self.id = self.socket.recv(self.BUFFER_SIZE) \
-                .decode(encoding=self.ENCODING).split(self.SEPARATOR)
-            self.command = ''
+            # Send command to client and retrieve response
+            response = self.post_command(self.command, retrieve_response=True)
+            self.last_response, self.current_dir, self.id = response[0], response[1], response[2]
 
-            # send the command to the client...
-            self.socket.send((self.command.encode()))
+    def post_command(self, command: str, retrieve_response=True):
+        """
+        :param command: Command to send to the server
+        :param retrieve_response: Retrieve data if true
+        :return: (last_response,current_dir,id) if with_response else None
+        """
+        # Send command
+        self.socket.send((command.encode()))
 
-    def health_status(self):
+        # Clear command
+        self.command = ''
+
+        if retrieve_response:
+            # return = last_response,current_dir,id
+            return self.retrieve_data()
+        else:
+            return None
+
+    def retrieve_data(self, set_object=True):
+        # Get response from Client
+        response = self.socket.recv(self.BUFFER_SIZE).decode(encoding=self.ENCODING).split(self.SEPARATOR)
+
+        # Split response  --->  response = [cmd_response, current_dir, id]
+        last_response = response[0] if response else ':ERR:'
+        current_dir = response[1] if len(response) > 1 else ':LUNA:'
+        id = response[2] = response[2] if len(response) > 2 else ':ROG:'
+
+        # Return response list
+        return [last_response, current_dir, id]
+
+    def update_health_status(self, sleep_time: float = 1):
+        """
+         :param sleep_time: additional waiting time
+        """
         try:
-            self.command = 'Health'
-            self.health = self.last_response
-        except :
-            self.command = 'kill'
+            # set LOCAL command to health
+            command = 'health'
 
+            # response = [cmd_response, current_dir, id]
+            response = self.post_command(command, retrieve_response=True)
 
+            # TODO get/set
+            try:
+                self.health = float(response[0])
+            except:
+                self.health = 999999999
+            self.current_dir = response[1]
+            self.id = response[2]
 
+            time.sleep(sleep_time)
+            return response[0]
 
-
+        except:
+            return 0
 
     def close(self):
         self.socket.close()  # close server connection
-    threading.Thread(target=cli_handler.handle).start()

@@ -1,173 +1,392 @@
+#INTERFACE UNVERSION a0.1
 import os
 import time
+from Server.Module import ConnectionHandler as CoHa
 
-sock_handler = None
-def get_connection(id=None):
+sock_handler: CoHa.SocketHandler = None
+
+
+def get_connection(id=None, single=False):
+    """
+    TRASH CODE TO BE REWORKED THIS IS ONLY A TEMPORARY BUFFER TO KEEP EVERYTHING WORKING WILL I WORK ON ALL THE FEATURE
+
+    :param id: if specified filter on id
+    :return: filtered list
+    :param single: bool changing type of output
+    :return: single connection default to last connected if multiple in query list
+
+    """
     global sock_handler
-    if not id:
-        return sock_handler.connection_list
 
-class Cli:  # .......          s    TODO COMPLETE REWORK
-    def __init__(self, wait_time=0.25):
+    # Get every connection
+    connection_list = [connection[0] for connection in sock_handler.connection_list]
+    # If no connection return empty
+    if len(connection_list) < 1:
+        return []
+
+    # Get every connection with id
+    if id and id != 'root':
+        connection_list = [connection for connection in connection_list if connection.get_id() == id]
+
+    # Return only one item
+    if single and id:
+        # If multiple return last connected TODO handle this better
+        if len(connection_list) > 1:
+            # TODO RETURN HEALTHY?
+            print(f' --> [ ERROR ] MULTIPLE CONNECTION WITH SAME ID : {id}'
+                  f'\n --> Returning Last Connected {len(connection_list) - 1} excluded')
+        connection_list = connection_list[-1] if connection_list else []
+    elif single:
+        print(' --> [ ERROR ] Single need a ID specified')
+
+    return connection_list if connection_list else []
+
+
+class Cli:
+    def __init__(self, wait_time=1, time_out=10):
+        """
+        :param wait_time: Define how long before new interval when waiting
+        :param time_out: Define how many interval will be executed when waiting
+        """
         self.wait_time = wait_time
-        self.context = {'context_root':'root','context_dir':'','context_connection':None}
-        #  TODO Add target I/O
+        self.time_out = time_out
 
-    def handle(self):
-        mark = ' $> '
+        self.context = {'context_id': 'root', 'context_dir': ''}  # Store current context TODO multi-context
 
+        self.mark = ' $> '  # Keep it easy to edit
+
+    def handler(self):
+        '''
+            Loop handling user input
+
+            see print_help() for more information
+        '''
         while True:
-            # Connection_list need to be globally change
-            connection_list = get_connection()  # TODO please find a better way, i hate this list
-
-            cmd = input(f'{self.context["context_root"]} {self.context["context_dir"]}{mark}').strip()
-
+            # Get input from console
+            cmd = input(f'{self.context["context_id"]} | {self.context["context_dir"]}{self.mark}').strip()
 
             # Parse cmd to get root (connect,run,exit, etc...) and tail (PCID,CMD, ,etc...)
             cmd_root, cmd_arg = self.parse_input(cmd)
 
-            if cmd_root in ['exit','quit']:
-                #  Set context to default
-                self.exit_context()
+            #  Set Context to DEFAULT
+            if cmd_root in ['exit', 'quit']:
+                message = self.exit_context()
+                print(message)
                 continue
 
-            if cmd_root in ['help', 'h']:
-                self.print_help()
-                continue
-
+            # Clear Console
             if cmd_root in ['clear', 'cls']:
                 self.clear()  # DONT WORK ON PYCHARM
                 continue
 
+            # Print Help
+            if cmd_root in ['help', 'h']:
+                message = self.print_help()
+                print(message)
+                continue
+
+            # List all connection
             if cmd_root in ['list', 'lst', 'ls']:
-                # TODO make connection_list look good
-                for e in connection_list:
-                    print(f'| {e[0].id} |')
-                # TODO add query
-                # TODO print heartbeat
-                # TODO add info (os? uptime? ping?)
+                message = self.list_connection()
+                print(message)
                 continue
 
-            if cmd_root in ['connect','context','link']:
-                if not cmd_arg:
-                    # If no context, Set context to default
-                    self.exit_context()
-                self.set_context(cmd_arg,connection_list)
+            # Get health of context
+            if cmd_root in ['health', 'beat']:
+                message = self.connection_health()
+                print(message)
                 continue
 
-            if cmd_root in ['execute','exec',':']:
-                time_out = 32 * self.wait_time
-                if self.context['context_root'] == 'root':
-                    # TODO test arg to get id then remove the continue and else to utilize else code here
-                    pass
-
-                elif(self.context['context_connection']):
-                    # TODO keep stream open? or print last message? wait or continue?
-
-                    # Clear last response
-                    self.context['context_connection'].last_response = ''
-                    # Set command to be push
-                    self.context['context_connection'].command = cmd_arg
-
-                    while not self.context['context_connection'].last_response.strip() and time_out > 0:
-                        time_out = time_out - 1
-                        time.sleep(self.wait_time)
-
-                    print(f' ---> {self.context["context_root"]}')
-                    print(self.context['context_connection'].last_response)
-
-                self.context["context_dir"] = self.context['context_connection'].current_dir
+            # Connect to a context
+            if cmd_root in ['connect', 'context', 'link']:
+                message = self.set_context(cmd_arg)
+                print(message)
                 continue
 
+            # Execute a cmd on client in context
+            if cmd_root in ['execute', 'exec', ':']:
+                message = self.push_execution(cmd_arg)
+                print(message)
+                continue
+
+            # Set and print a message if command is not part of the cli
             with_context_msg = f'do you mean -> execute {cmd_root}'
             without_context_msg = f'do you mean -> execute {cmd_root} --target [server_list]'
-            additional_message = with_context_msg if self.context['context_connection'] else without_context_msg
+            additional_message = with_context_msg if self.context['context_id'] != 'root' else without_context_msg
+
             print(f'--> ERROR: {cmd_root} not recognised, {additional_message}')
 
-    def parse_input(self, command: str):
-        '''
-        :param command : str containing user input to be parsed
-        :return: (root,tail) - tuple (str,list) containing command and *arg
-        '''
-        root = ''
-        tail_lst = []
-        split_cmd = command.strip().split(' ', 1)
+    def connection_health(self):  # TODO change how health is calculated
+        """
+        Generate a message containing a client heath check intended to be digested as a user output
 
-        root = split_cmd[0]
-        if len(split_cmd) > 1:
-            tail_lst = split_cmd[1]
-            #tail_lst = [e for e in split_cmd[1].split('-') if e]
-        return root, tail_lst
+        ATTENTION :: USE ONLY IF YOU WANT A FULLY FORMATTED MESSAGE
 
+        :return: formatted message intended to be digested as a user output
+        """
+        message = '\n-----------|       HEALTH CHECK      |-----------\n'
+        if self.context['context_id'] == 'root':
+            # TODO
+            message += '\n ---> execute without context is not yet supported'
+        else:
+            connection = get_connection(self.context['context_id'], single=True)  # Single True return only on
+            # Print Health
+            message += f'\n ---> {self.context["context_id"]}' \
+                       f'\n    `---> Last response was {connection.get_health()}s ago'
+
+        return message
+
+    def push_execution(self, cmd_arg):
+        """
+        This command is a full execution of a transaction with the user
+
+            step 1: Get a lock on every CiC (client in context)
+
+            step 2: Clean out of every CiC output
+
+            step 3: Set a command in every client cmd
+
+            step 4: Monitor client output
+
+            step 5: Generate user message from client output
+
+        :param cmd_arg: data that will be sent to all client
+        :return: Formatted message intended to be digested as a user output
+        """
+        message = '\n-----------|    Execution  OutPut    |-----------\n'
+        if self.context['context_id'] == 'root':
+            # TODO test arg to get id
+            message += '\n ---> execute without context is not yet supported'
+            return message
+        else:
+            # Get single connection from context
+            connection = get_connection(self.context['context_id'], single=True)
+
+            # Clear last response
+            connection.set_last_response()
+
+            # Set command to be push
+            connection.set_command(cmd_arg)
+
+            # Wait for time_out number of cycle for a response
+            time_out = self.time_out  # Set number of cycle max before timeout from default
+            message_additional = ''
+            while not message_additional:
+                if connection.get_last_response().strip():
+                    # Get last message send by client
+                    message_additional = f'\n ---> RESPONSE' \
+                                         f'\n    `---> ' \
+                                         f'\n{connection.get_last_response().strip()}'
+                    break
+
+                # Time out if time out get to zero
+                time_out = time_out - 1
+                if time_out < 1:
+                    message_additional = '\n ---> No response received' \
+                                         f'\n    `---> Client Health  :  {connection.get_health(update_health=True)}'
+                    continue
+                time.sleep(self.wait_time)
+
+            message += f'\n ---> {self.context["context_id"]}'
+            message += message_additional
+
+            # Update context (current_directory) and add message if error doing so
+            message += f'\n{self.set_context(self.context["context_id"])}'
+
+            return message
+
+    def set_context(self, cmd_arg):
+        '''
+        Set all variable necessary to define a context
+
+        :param cmd_arg:
+        :return: Formatted message intended to be digested as a user output
+        '''
+        message = '\n-----------|          Context        |-----------\n'
+
+        if not cmd_arg:
+            # If no arg specified default to current
+            arg_dic = {'id': self.context['context_id']}
+        else:
+            # Parse arg to arg dic
+            arg_dic = self.parse_command(cmd_arg, ['id'])
+
+        if arg_dic['id']:  # Make sure a flag id have been found
+
+            # If context root have been specified exit current context
+            if arg_dic['id'] == 'root':
+                message += '\n ---> Root context: exiting all context'
+                message += self.exit_context()
+                return message
+
+            # get connection of specified context todo multi client context
+            connection = get_connection(arg_dic['id'], single=True)
+
+            if connection:
+                # connection = connection[0]
+                self.context['context_id'] = connection.get_id()
+                self.context['context_dir'] = connection.get_current_dir()
+            else:
+                message += f'\n ---> No connection found for {arg_dic["id"]}'
+        return message
 
     def exit_context(self):
         """
             SET context item to default value
-            :var context_root:          = "root"
+
+            :var context_id:          = "root"
             :var context_dir:           = ""
-            :var context_connection:    = None
+
+        :return: Formatted message intended to be digested as a user output
         """
-        self.context['context_root'] = 'root'
+        self.context['context_id'] = 'root'
         self.context['context_dir'] = ''
-        self.context['context_connection'] = None
+        message = f'\n ---> Exiting context'
+        return message
 
-
-
-    def set_context(self,cmd_arg,connection_list):
-        message = '----------- Context Creation OutPut -----------' # TODO better i/o management
-        # I don't even want to comment that part
-        if not cmd_arg:
-            message += '\n  -->   ERROR : connect <id> --flag '
-            return message
-
-        arg_dic = {}
-        if cmd_arg.strip()[0] != '-':
-            temp = cmd_arg.lstrip().split(' ', 1)
-            arg_dic['id'] = temp[0]
-            if len(temp) > 1:
-                cmd_arg = temp[1]
-            else:
-                cmd_arg = None
-        if cmd_arg:
-            cmd_arg = cmd_arg.replace('--', '-')
-            for arg in cmd_arg.split('-'):
-                if arg:
-                    root_arg, tail_arg = arg.split(' ', 1)
-                    arg_dic[root_arg] = tail_arg
-        if arg_dic['id']:
-            for e in connection_list:
-                if e[0].id == arg_dic['id']:
-                    self.context['context_root'] = e[0].id
-                    self.context['context_dir'] = e[0].current_dir
-                    self.context['context_connection'] = e[0]
-
-            if not self.context['context_dir']: # TODO Heartbeat and validate connection before trying to set context
-                self.exit_context()
-                message += f'\n  -->   No active connection with id {arg_dic["id"]}'
-
-
-    def print_help(self):
-        """
-            Print cli specific command help
-        """
-        # TODO help for specific command
-        message_dic = {
-            '[help, h] ->':                'Print this message',
-            '[exit, quit] ->':             'Exit current context',
-            '[clear, cls] ->':             'Clear console, doesn\'t work with pycharm and other software',
-            '[list, lst, ls] ->':          'List all know connection',
-            '[connect, context, link] ->': 'Set a context to target connection',
-            '[execute, exec, :] ->':       'Send a command to the connection object to be execute'
-
-        }
-        for key in message_dic:
-            value = message_dic[key]
-            print(key,value)
-
+    # WILL PROBABLY LOSE STATIC AFTER A FEW ITERATION OF THE CODE
     @staticmethod
     def clear():
+        """
+        Send a command to clear a console
+
+            ATTENTION THIS DOESN'T WORK FOR MOST CONSOLE
+            PLEASE USE CMD IF YOU WANT TO HAVE
+            AT LEAST A SPRINCLE OF HOPE
+            OF SEEN THIS THING
+            WORK....
+
+        :return: clear command to user terminal
+        """
         os.system('cls' if os.name in ('nt', 'dos') else 'clear')
 
+    @staticmethod
+    def list_connection():
+        """
+        Generate a message containing every connection
+        :return: Formatted message intended to be digested as a user output
+        """
+        message = '\n-------------|     LIST  CONNECTION     |-------------\n'
+        column_widht = 11
+        connection_list = get_connection(single=False)  # Single False return a list
+        if len(connection_list) > 0:
+
+            message += '\n|     ID    | Last Beat |           |           |           |\n'
+            for connection in connection_list:
+                if connection:
+                    message += f'\n|{connection.get_id(): ^{column_widht}}' \
+                               f'|{connection.get_health(): ^{column_widht}}' \
+                               f'|{"": ^{column_widht}}' \
+                               f'|{"": ^{column_widht}}' \
+                               f'|{"": ^{column_widht}}|\n'
+        else:
+            message += '\n ---> No active connection'
+        return message
+
+    @staticmethod
+    def parse_input(command: str):
+        """
+        TODO REPLACE WITH PARSE_COMMAND AS IT IS A MORE POWERFULL VERSION OF THIS AND ANY TIME GAIN WONT BE FEEL
+        Parse an input in is tuple
+
+        This tuple is constituted of the input root and the input tail
+
+        ______EXAMPLE______
+
+        exec tasklist /fi "STATUS eq running"
+
+        ROOT: exec
+
+        TAIL: tasklist /fi "STATUS eq running"
+        :param command : str containing user input to be parsed
+
+        :return: (root,tail) - tuple (str,list) containing command and *arg
+        """
+
+        tail_lst = []
+        split_cmd = command.strip().split(' ', 1)
+        root = split_cmd[0]
+
+        if len(split_cmd) > 1:
+            tail_lst = split_cmd[1]
+        return root, tail_lst
+
+    @staticmethod
+    def parse_command(command: str, expected_arg: list, force_first_flag=False):
+        """
+        Parse command or command tail in expected part
+
+        The expected part is important since it will ignore most of your input if your input is high entropy
+
+        :param command: command to be parse in is expected constituent
+        :param expected_arg: list of expected constituent EX: [CMD,ARG1,ARG...
+        :param force_first_flag: false remove the need of a flag in front of the first argument...
+
+            Removing the first flag make it harder to use programmatically for the most part
+            force_first_flag default should thus be True, but I don't want to take the time needed to modify my code
+        :return: Dictionary containing { 'FLAG1':'ARG1',.. _____EX: { 'ID':'CLIENT_ID',..
+
+        """
+        cmd_parsed_dict = {}
+
+        command = command.strip()  # Need to make specially sure no leading space is present
+        # cmd_arg --> connect ID_OF_THE_CONNECTION
+
+        # If allow will interpret a non flagged first arg as the first arg of the expected_arg list
+        if not force_first_flag and command[0] != '-':  # Test if first character is NOT a HYPHEN (-)
+            temp_lst = command.split(' ', 1)
+            cmd_parsed_dict[expected_arg[0]] = temp_lst[0]
+            if len(temp_lst) > 1:
+                command = temp_lst[1]
+            else:
+                command = None
+
+        if command:
+            command = command.replace('--', '-')  # Make sure -ID is the same as --ID
+            for arg in command.split('-'):
+                if arg:
+                    # Add argument to argument dictionary
+                    root_arg, tail_arg = arg.split(' ', 1)
+                    cmd_parsed_dict[root_arg] = tail_arg
+        return cmd_parsed_dict
+
+    @staticmethod
+    def print_help():
+        """
+            Print cli specific command help
+
+                'help, h'                   'Print this message'
+
+                'exit, quit'                'Exit current context',
+
+                'clear, cls'                'Clear console, doesn't work with pycharm and other software',
+
+                'list, lst, ls'             'List all know connection',
+
+                'connect, context, link'    'Set a context to target connection',
+
+                'execute, exec, :'          'Send a command to the connection object to be execute'
+        """
+        padding = 6
+        message = '\n-----------|           HELP          |-----------\n'
+        # TODO help for specified command
+        message_dic = {
+            'help, h': 'Print this message',
+            'exit, quit': 'Exit current context',
+            'clear, cls': 'Clear console, doesn\'t work with pycharm and other software',
+            'list, lst, ls': 'List all know connection',
+            'connect, context, link': 'Set a context to target connection',
+            'execute, exec, :': 'Send a command to the connection object to be execute'
+
+        }
+        lenght = 0
+        for key in message_dic.keys():
+            if len(key) > lenght:
+                lenght = len(key)
+        for key in message_dic.keys():
+            val = message_dic[key]
+            message += f'\n{key}{" " * (padding + lenght - len(key))}{val}'
+        return message
 
 
 class Gui:

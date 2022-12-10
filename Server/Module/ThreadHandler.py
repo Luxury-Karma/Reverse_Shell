@@ -13,6 +13,13 @@ def main():
     cli_handler = Itf.Cli()
 
     # TODO handle thread in any other way seriously
-    threading.Thread(target=sock_handler.looker).start()
-    threading.Thread(target=sock_handler.run).start()
-    threading.Thread(target=cli_handler.handle).start()
+    create_Thread(sock_handler.looker)
+    create_Thread(sock_handler.handler)
+    create_Thread(cli_handler.handler)
+
+def create_Thread(target):
+    try:
+        threading.Thread(target=target).start()
+        return 'Ok'
+    except:
+        return 'Err'
