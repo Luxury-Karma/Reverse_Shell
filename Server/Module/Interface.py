@@ -1,69 +1,26 @@
 # INTERFACE UNVERSION alpha 0.1.0
 import os
 import time
-from Server.Module import ConnectionHandler as CoHa
+from Server.Module import ContextEngine as CoEn
 
-sock_handler: CoHa.SocketHandler
-
-
-# TODO
-#   _context library_
-#   _   _   _   _   _
-#       SAVED_CONTEXT
-#           _CONTEXT_ keep on permanent memory (Can be load as either a PERMANENT_CONTEXT or a TEMPORARY_CONTEXT)
-#   _   _   _   _   _
-#       PERMANENT_CONTEXT
-#           _CONTEXT_ keep in memory even if exited need to be explicitly destroyed
-#       TEMPORARY_CONTEXT
-#           _CONTEXT_ keep in memory and automatically destroyed if exited
-#   _   _   _   _   _
-#       CHILD_CONTEXT
-#           _CONTEXT_ keep inside a another context
-#               meaning that you can navigate to and from his parent _CONTEXT_
-
-
-def get_connection(_id=None, single=False):
-    """
-    TRASH CODE TO BE REWORKED THIS IS ONLY A TEMPORARY BUFFER TO KEEP EVERYTHING WORKING WILL I WORK ON ALL THE FEATURE
-
-    :param _id: if specified filter on id
-    :return: filtered list
-    :param single: bool changing type of output
-    :return: single connection default to last connected if multiple in query list
-
-    """
-    global sock_handler
-
-    # Get every connection
-    connection_list = [connection[0] for connection in sock_handler.connection_list]
-    # If no connection return empty
-    if len(connection_list) < 1:
-        return []
-
-    # Get every connection with id
-    if _id and _id != 'root':
-        connection_list = [connection for connection in connection_list if _id == connection.get_id()]
-
-    # region TODO move that part to a lib for context,context should always be list
-    # Return only one item
-    if single and _id:  #
-        # If multiple return last connected
-        if len(connection_list) > 1:
-            print(f' --> [ ERROR ] MULTIPLE CONNECTION WITH SAME ID : {_id}'
-                  f'\n --> Returning Last Connected {len(connection_list) - 1} excluded')
-        connection_list = connection_list[-1] if connection_list else []
-    elif single:
-        print(' --> [ ERROR ] Single need a ID specified')
-    # endregion
-    return connection_list if connection_list else []
+# TODO THIS IS A TEMPORARY PATCH TO KEEP THIS THING WORKING WILE I BUTCHER OTHER PART OF HIS BRAIN
+get_connection = CoEn.get_connection
 
 
 class Cli:
+    """
+    Command line interface, easier to program is thus currently the only available interface.
+
+    I see it as a simple view on every module giving a user mostly unsecure access to every module offer by the server.
+
+    """
+
     def __init__(self, wait_time=1, time_out=10):
         """
         :param wait_time: Define how long before new interval when waiting
         :param time_out: Define how many interval will be executed when waiting
         """
+
         self.wait_time = wait_time
         self.time_out = time_out
 
@@ -79,8 +36,11 @@ class Cli:
             see print_help() for more information...
 
         """
+
         while True:
+
             # region Get and parse user input
+
             # Get input from console
             cmd = input(f'{self.context["context_id"]} | {self.context["context_dir"]}{self.mark}').strip()
 
@@ -107,7 +67,6 @@ class Cli:
                 message = self.print_help()
                 print(message)
                 continue
-
             # endregion
 
             # region List all connection                |                COMMAND  ::               ['list', 'lst', 'ls']
@@ -154,7 +113,9 @@ class Cli:
 
         :return: formatted message intended to be digested as a user output
         """
+
         message = '\n-----------|       HEALTH CHECK      |-----------\n'
+
         if self.context['context_id'] == 'root':
             # TODO ADD -> argument support
             message += '\n ---> execute without context is not yet supported'
@@ -183,12 +144,15 @@ class Cli:
         :param cmd_arg: data that will be sent to all client
         :return: Formatted message intended to be digested as a user output
         """
+
         message = '\n-----------|    Execution  OutPut    |-----------\n'
+
         if self.context['context_id'] == 'root':
             # TODO ADD -> argument support
             message += '\n ---> execute without context is not yet supported'
             return message
         else:
+
             # Get single connection from context
             connection = get_connection(self.context['context_id'], single=True)
 
@@ -201,6 +165,7 @@ class Cli:
             # Wait for time_out number of cycle for a response
             time_out = self.time_out  # Set number of cycle max before timeout from default
             message_additional = ''
+
             while not message_additional:
                 if connection.get_last_response().strip():
                     # Get last message send by client
@@ -235,6 +200,7 @@ class Cli:
         :param cmd_arg:
         :return: Formatted message intended to be digested as a user output
         """
+
         message = '\n-----------|          Context        |-----------\n'
 
         if not cmd_arg:
@@ -272,9 +238,11 @@ class Cli:
 
         :return: Formatted message intended to be digested as a user output
         """
+
         self.context['context_id'] = 'root'
         self.context['context_dir'] = ''
         message = f'\n ---> Exiting context'
+
         return message
 
     # WILL PROBABLY LOSE STATIC AFTER A FEW ITERATION OF THE CODE
@@ -299,6 +267,7 @@ class Cli:
         Generate a message containing every connection
         :return: Formatted message intended to be digested as a user output
         """
+
         message = '\n-------------|     LIST  CONNECTION     |-------------\n'
         column_width = 11
         connection_list = get_connection(single=False)  # Single False return a list
@@ -400,9 +369,12 @@ class Cli:
 
                 'execute, exec, :'          'Send a command to the connection object to be execute'
         """
+
         padding = 6
         message = '\n-----------|           HELP          |-----------\n'
+
         # TODO -> HELP for specified command
+        # Dictionary containing the forbidden knowledge of everything i cared to included in the cli for now
         message_dic = {
             # dict is double-quoted to allow (doesn't) without having to use \'
             "help, h": "Print this message",
@@ -413,6 +385,7 @@ class Cli:
             "execute, exec, :": "Send a command to the connection object to be execute"
 
         }
+
         length = 0
         for key in message_dic.keys():
             if len(key) > length:
@@ -421,6 +394,8 @@ class Cli:
             val = message_dic[key]
             message += f'\n{key}{" " * (padding + length - len(key))}{val}'
         return message
+
+
 
 
 class Gui:
