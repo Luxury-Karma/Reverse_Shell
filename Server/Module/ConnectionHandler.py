@@ -60,6 +60,9 @@ class ClientHandler:  # TODO COMPLETE REWORK
 
     def get_id(self):
         return self.id
+    def set_id(self,id):
+        self.id = id
+        return self.id
 
     def get_health(self, update_health=False):
         if update_health:
@@ -78,7 +81,11 @@ class ClientHandler:  # TODO COMPLETE REWORK
 
     def handler(self):
         # receiving the current working directory of the client
-        self.last_response, self.current_dir, self.id = self.retrieve_data()
+        response = self.retrieve_data()
+        self.set_last_response(response[0])
+        self.current_dir = response[1]
+        if self.id != response[2]:
+            self.set_id(response[2])
         while True:
 
             # Look if a command have been set to be push, if not get health
@@ -92,7 +99,11 @@ class ClientHandler:  # TODO COMPLETE REWORK
 
             # Send command to client and retrieve response
             response = self.post_command(self.command, retrieve_response=True)
-            self.last_response, self.current_dir, self.id = response[0], response[1], response[2]
+
+            self.set_last_response(response[0])
+            self.current_dir = response[1]
+            if self.id != response[2]:
+                self.set_id(response[2])
 
     def post_command(self, command: str, retrieve_response=True):
         """
@@ -117,12 +128,12 @@ class ClientHandler:  # TODO COMPLETE REWORK
         response = self.socket.recv(self.BUFFER_SIZE).decode(encoding=self.ENCODING).split(self.SEPARATOR)
 
         # Split response  --->  response = [cmd_response, current_dir, id]
-        last_response = response[0] if response else ':ERR:'
-        current_dir = response[1] if len(response) > 1 else ':LUNA:'
-        id = response[2] = response[2] if len(response) > 2 else ':ROG:'
+        _last_response = response[0] if response else ':ERR:'
+        _current_dir = response[1] if len(response) > 1 else ':LUNA:'
+        _id = response[2] if len(response) > 2 else ':ROG:'
 
         # Return response list
-        return [last_response, current_dir, id]
+        return [_last_response, _current_dir, _id]
 
     def update_health_status(self, sleep_time: float = 1):
         """
@@ -141,8 +152,9 @@ class ClientHandler:  # TODO COMPLETE REWORK
             except:
                 self.health = 999999999
             self.current_dir = response[1]
-            self.id = response[2]
 
+            if self.id != response[2]:
+                self.set_id(response[2])
             time.sleep(sleep_time)
             return response[0]
 

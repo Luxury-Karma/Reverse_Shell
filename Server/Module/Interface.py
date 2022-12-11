@@ -4,6 +4,22 @@ import time
 from Server.Module import ConnectionHandler as CoHa
 
 sock_handler: CoHa.SocketHandler = None
+# TODO
+#   _context library_
+#   _   _   _   _   _
+#       SAVED_CONTEXT
+#           _CONTEXT_ keep on permanent memory (Can be load as either a PERMANENT_CONTEXT or a TEMPORARY_CONTEXT)
+#   _   _   _   _   _
+#       PERMANENT_CONTEXT
+#           _CONTEXT_ keep in memory even if exited need to be explicitly destroyed
+#       TEMPORARY_CONTEXT
+#           _CONTEXT_ keep in memory and automatically destroyed if exited
+#   _   _   _   _   _
+#       CHILD_CONTEXT
+#           _CONTEXT_ keep inside a another context
+#               meaning that you can navigate to and from his parent _CONTEXT_
+
+
 
 
 def get_connection(id=None, single=False):
@@ -26,21 +42,20 @@ def get_connection(id=None, single=False):
 
     # Get every connection with id
     if id and id != 'root':
-        connection_list = [connection for connection in connection_list if connection.get_id() == id]
+        connection_list = [connection for connection in connection_list if id == connection.get_id()]
 
+    # region TODO move that part to a lib for context,context should always be list
     # Return only one item
-    if single and id:
-        # If multiple return last connected TODO handle this better
+    if single and id: #
+        # If multiple return last connected
         if len(connection_list) > 1:
-            # TODO RETURN HEALTHY?
             print(f' --> [ ERROR ] MULTIPLE CONNECTION WITH SAME ID : {id}'
                   f'\n --> Returning Last Connected {len(connection_list) - 1} excluded')
         connection_list = connection_list[-1] if connection_list else []
     elif single:
         print(' --> [ ERROR ] Single need a ID specified')
-
+    # endregion
     return connection_list if connection_list else []
-
 
 class Cli:
     def __init__(self, wait_time=1, time_out=10):
@@ -51,7 +66,7 @@ class Cli:
         self.wait_time = wait_time
         self.time_out = time_out
 
-        self.context = {'context_id': 'root', 'context_dir': ''}  # Store current context TODO multi-context
+        self.context = {'context_id': 'root', 'context_dir': ''}  # Store current context
 
         self.mark = ' $> '  # Keep it easy to edit
 
@@ -116,7 +131,7 @@ class Cli:
 
             print(f'--> ERROR: {cmd_root} not recognised, {additional_message}')
 
-    def connection_health(self):  # TODO change how health is calculated
+    def connection_health(self):
         """
         Generate a message containing a client heath check intended to be digested as a user output
 
@@ -126,7 +141,7 @@ class Cli:
         """
         message = '\n-----------|       HEALTH CHECK      |-----------\n'
         if self.context['context_id'] == 'root':
-            # TODO
+            # TODO ADD -> argument support
             message += '\n ---> execute without context is not yet supported'
         else:
             connection = get_connection(self.context['context_id'], single=True)  # Single True return only on
@@ -155,7 +170,7 @@ class Cli:
         """
         message = '\n-----------|    Execution  OutPut    |-----------\n'
         if self.context['context_id'] == 'root':
-            # TODO test arg to get id
+            # TODO ADD -> argument support
             message += '\n ---> execute without context is not yet supported'
             return message
         else:
@@ -219,7 +234,6 @@ class Cli:
                 message += self.exit_context()
                 return message
 
-            # get connection of specified context todo multi client context
             connection = get_connection(arg_dic['id'], single=True)
 
             if connection:
@@ -369,7 +383,7 @@ class Cli:
         """
         padding = 6
         message = '\n-----------|           HELP          |-----------\n'
-        # TODO help for specified command
+        # TODO -> HELP for specified command
         message_dic = {
             'help, h': 'Print this message',
             'exit, quit': 'Exit current context',

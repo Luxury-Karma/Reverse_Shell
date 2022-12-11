@@ -4,6 +4,7 @@ from Server.Module import Interface as Itf
 
 SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 2424
+# TODO BETTER THREAD MANAGEMENT
 
 
 def main():
@@ -12,7 +13,7 @@ def main():
     Itf.sock_handler = sock_handler
     cli_handler = Itf.Cli()
 
-    # TODO handle thread in any other way seriously
+
     create_Thread(sock_handler.looker)
     create_Thread(sock_handler.handler)
     create_Thread(cli_handler.handler)
