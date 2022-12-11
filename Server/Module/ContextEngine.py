@@ -3,38 +3,73 @@ from Server.Module import ConnectionHandler as CoHa
 sock_handler: CoHa.SocketHandler
 
 
-#                                              < ATTENTION WIP >
-#                                   This is the pre development concept
-#       _CONTEXT_
-#           Keep reference to client connection, _CONTEXT REFERENCE_ or _REMOTE CONTEXT REFERENCE_
-#       _REMOTE_CONTEXT_
-#           _CONTEXT_ provided by a remote _CONTEXT ENGINE_
-#       _ROOT_CONTEXT_
-#           _CONTEXT_ containing every client in every client connected to connected sock_handler
-#   _   _   _   _   _
-#       SAVED_CONTEXT
-#           _CONTEXT_ keep on permanent memory (Can be load as either a PERMANENT_CONTEXT or a TEMPORARY_CONTEXT)
-#   _   _   _   _   _
-#       PERMANENT_CONTEXT
-#           _CONTEXT_ keep in memory even if exited need to be explicitly destroyed
-#       TEMPORARY_CONTEXT
-#           _CONTEXT_ keep in memory and automatically destroyed if exited
-#   _   _   _   _   _
-#       PARENT_CONTEXT
-#           _CONTEXT_ keeping at least one _CHILD CONTEXT REFERENCE_
-#       CHILD_CONTEXT
-#           _CONTEXT_ having is reference referenced by a PARENT_CONTEXT
-#   _   _   _   _   _
-#       CURRENT DESIGN LOOK LIKE THIS
-#       1 - Generate context
-#       2 - Destroy context
-#       3 - Query context
-#       4 - Generate context reference (name i give to the context in reference to the user)
-#       5 - Destroy context from reference (probably only a _d-=wa- for destroy context)
-#       6 - Query context reference ( this will probably be is own query or maybe it is also onl-= for query context)
-#       7 - Save context to disk
-#       8 - Load context from disk
-#       9 - Send Request to external context engine
+# wip>                                                  ATTENTION
+# wip>                           THIS IS A list PRE-DEVELOPMENT CONCEPT AS CURRENTLY DEFINED
+
+# wip>   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___
+
+# wip>     <CONTEXT>
+# wip>         Keep reference to client connection, _CONTEXT_REFERENCE_ or _REMOTE_CONTEXT_REFERENCE_
+
+# wip>     <REMOTE CONTEXT>
+# wip>         _CONTEXT_ provided by a remote _CONTEXT_ENGINE_
+
+# wip>     <ROOT CONTEXT>
+# wip>         _CONTEXT_ containing every client in every client connected to connected sock_handler
+
+# wip>     <SAVED CONTEXT>
+# wip>         _CONTEXT_ keep on permanent memory (Can be load as either a _PERMANENT_CONTEXT_ or a _TEMPORARY_CONTEXT_)
+
+# wip>     <PERMANENT CONTEXT>
+# wip>         _CONTEXT_ keep in memory even if exited need to be explicitly destroyed
+
+# wip>     <TEMPORARY CONTEXT>
+# wip>         _CONTEXT_ keep in memory and automatically destroyed if exited
+
+# wip>     <PARENT CONTEXT>
+# wip>         _CONTEXT_ keeping at least one _CHILD_CONTEXT_REFERENCE_
+
+# wip>     <CHILD CONTEXT>
+# wip>         _CONTEXT_ having is reference referenced by a _PARENT_CONTEXT_
+
+# wip>   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___   ___
+
+# wip>                                                  ATTENTION
+# wip>                           THIS IS A list OF MY CURRENT OVERVIEW OF CONTEXT ENGINE
+
+# wip>                          <BASE COMPONENT>
+# wip>
+# wip>                      1 - Generate context
+# wip>                      2 - Destroy context
+# wip>                      3 - Query context
+
+# wip>                          <REFERENCE COMPONENT>
+# wip>
+# wip>                      1 - Generate context reference (name i give to the context in reference to the user)
+# wip>                      2 - Destroy context from reference (probably using destroy context)
+# wip>                      3 - Query context from reference ( probably using query context )
+
+# wip>                          <PERMANENCE COMPONENT>
+# wip>
+# wip>                      1 - Save context to disk
+# wip>                      2 - Load context from disk
+
+
+# wip>                          <REMOTE CONTEXT COMPONENT>
+# wip>
+# wip>                                  ATTENTION
+# wip>                      Remote context component is a module
+# wip>
+# wip>                      -OUTGOING
+# wip>                          1 - Connect to external engine
+# wip>                          2 - Disconnect from outgoing external engine connection
+# wip>                          4 - List outgoing connection
+# wip>                          5 - Request for remote context information
+# wip>
+# wip>                      -INGOING
+# wip>                          3 - List ingoing connection
+# wip>                          3 - Disconnect incoming external engine connection
+# wip>                          5 - Send context
 
 
 def get_connection(_id=None, single=False):

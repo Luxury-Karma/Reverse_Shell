@@ -49,48 +49,48 @@ class Cli:
 
             # endregion
 
-            # region Set Context to DEFAULT             |                COMMAND  ::                    ['exit', 'quit']
+            # region Set Context to DEFAULT             |                                 <['exit', 'quit'] ::: COMMAND>
             if cmd_root in ['exit', 'quit']:
                 message = self.exit_context()
                 print(message)
                 continue
             # endregion
 
-            # region Clear Console                      |                COMMAND  ::                    ['clear', 'cls']
+            # region Clear Console                      |                                 <['clear', 'cls'] ::: COMMAND>
             if cmd_root in ['clear', 'cls']:
                 self.clear()  # DONT WORK ON PYCHARM
                 continue
             # endregion
 
-            # region Print Help                         |                COMMAND  ::                       ['help', 'h']
+            # region Print Help                         |                                    <['help', 'h'] ::: COMMAND>
             if cmd_root in ['help', 'h']:
                 message = self.print_help()
                 print(message)
                 continue
             # endregion
 
-            # region List all connection                |                COMMAND  ::               ['list', 'lst', 'ls']
+            # region List all connection                |                            <['list', 'lst', 'ls'] ::: COMMAND>
             if cmd_root in ['list', 'lst', 'ls']:
                 message = self.list_connection()
                 print(message)
                 continue
             # endregion
 
-            # region Get health of context              |                COMMAND   ::                   ['exit', 'quit']
+            # region Get health of context              |                                 <['exit', 'quit'] ::: COMMAND>
             if cmd_root in ['health', 'beat']:
                 message = self.connection_health()
                 print(message)
                 continue
             # endregion
 
-            # region Connect to a context               |                COMMAND   ::     ['connect', 'context', 'link']
+            # region Connect to a context               |                   <['connect', 'context', 'link'] ::: COMMAND>
             if cmd_root in ['connect', 'context', 'link']:
                 message = self.set_context(cmd_arg)
                 print(message)
                 continue
             # endregion
 
-            # region Push cmd to client in context      |                COMMAND   ::           ['execute', 'exec', ':']
+            # region Push cmd to client in context      |                         <['execute', 'exec', ':'] ::: COMMAND>
             if cmd_root in ['execute', 'exec', ':']:
                 message = self.push_execution(cmd_arg)
                 print(message)
