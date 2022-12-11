@@ -1,9 +1,11 @@
-#INTERFACE UNVERSION a0.1
+# INTERFACE UNVERSION alpha 0.1.0
 import os
 import time
 from Server.Module import ConnectionHandler as CoHa
 
-sock_handler: CoHa.SocketHandler = None
+sock_handler: CoHa.SocketHandler
+
+
 # TODO
 #   _context library_
 #   _   _   _   _   _
@@ -20,13 +22,11 @@ sock_handler: CoHa.SocketHandler = None
 #               meaning that you can navigate to and from his parent _CONTEXT_
 
 
-
-
-def get_connection(id=None, single=False):
+def get_connection(_id=None, single=False):
     """
     TRASH CODE TO BE REWORKED THIS IS ONLY A TEMPORARY BUFFER TO KEEP EVERYTHING WORKING WILL I WORK ON ALL THE FEATURE
 
-    :param id: if specified filter on id
+    :param _id: if specified filter on id
     :return: filtered list
     :param single: bool changing type of output
     :return: single connection default to last connected if multiple in query list
@@ -41,21 +41,22 @@ def get_connection(id=None, single=False):
         return []
 
     # Get every connection with id
-    if id and id != 'root':
-        connection_list = [connection for connection in connection_list if id == connection.get_id()]
+    if _id and _id != 'root':
+        connection_list = [connection for connection in connection_list if _id == connection.get_id()]
 
     # region TODO move that part to a lib for context,context should always be list
     # Return only one item
-    if single and id: #
+    if single and _id:  #
         # If multiple return last connected
         if len(connection_list) > 1:
-            print(f' --> [ ERROR ] MULTIPLE CONNECTION WITH SAME ID : {id}'
+            print(f' --> [ ERROR ] MULTIPLE CONNECTION WITH SAME ID : {_id}'
                   f'\n --> Returning Last Connected {len(connection_list) - 1} excluded')
         connection_list = connection_list[-1] if connection_list else []
     elif single:
         print(' --> [ ERROR ] Single need a ID specified')
     # endregion
     return connection_list if connection_list else []
+
 
 class Cli:
     def __init__(self, wait_time=1, time_out=10):
@@ -71,65 +72,79 @@ class Cli:
         self.mark = ' $> '  # Keep it easy to edit
 
     def handler(self):
-        '''
-            Loop handling user input
+        """
+            Loop handling user input...
+            Should be keep as simple as possible for ease of code readability
 
-            see print_help() for more information
-        '''
+            see print_help() for more information...
+
+        """
         while True:
+            # region Get and parse user input
             # Get input from console
             cmd = input(f'{self.context["context_id"]} | {self.context["context_dir"]}{self.mark}').strip()
 
-            # Parse cmd to get root (connect,run,exit, etc...) and tail (PCID,CMD, ,etc...)
+            # Parse cmd to get root (connect,run,exit, etc...) and tail (PCID, CMD, ,etc...)
             cmd_root, cmd_arg = self.parse_input(cmd)
 
-            #  Set Context to DEFAULT
+            # endregion
+
+            # region Set Context to DEFAULT             |                COMMAND  ::                    ['exit', 'quit']
             if cmd_root in ['exit', 'quit']:
                 message = self.exit_context()
                 print(message)
                 continue
+            # endregion
 
-            # Clear Console
+            # region Clear Console                      |                COMMAND  ::                    ['clear', 'cls']
             if cmd_root in ['clear', 'cls']:
                 self.clear()  # DONT WORK ON PYCHARM
                 continue
+            # endregion
 
-            # Print Help
+            # region Print Help                         |                COMMAND  ::                       ['help', 'h']
             if cmd_root in ['help', 'h']:
                 message = self.print_help()
                 print(message)
                 continue
 
-            # List all connection
+            # endregion
+
+            # region List all connection                |                COMMAND  ::               ['list', 'lst', 'ls']
             if cmd_root in ['list', 'lst', 'ls']:
                 message = self.list_connection()
                 print(message)
                 continue
+            # endregion
 
-            # Get health of context
+            # region Get health of context              |                COMMAND   ::                   ['exit', 'quit']
             if cmd_root in ['health', 'beat']:
                 message = self.connection_health()
                 print(message)
                 continue
+            # endregion
 
-            # Connect to a context
+            # region Connect to a context               |                COMMAND   ::     ['connect', 'context', 'link']
             if cmd_root in ['connect', 'context', 'link']:
                 message = self.set_context(cmd_arg)
                 print(message)
                 continue
+            # endregion
 
-            # Execute a cmd on client in context
+            # region Push cmd to client in context      |                COMMAND   ::           ['execute', 'exec', ':']
             if cmd_root in ['execute', 'exec', ':']:
                 message = self.push_execution(cmd_arg)
                 print(message)
                 continue
+            # endregion
 
-            # Set and print a message if command is not part of the cli
+            # region Set and print a message if command is not part of the cli
             with_context_msg = f'do you mean -> execute {cmd_root}'
             without_context_msg = f'do you mean -> execute {cmd_root} --target [server_list]'
             additional_message = with_context_msg if self.context['context_id'] != 'root' else without_context_msg
 
             print(f'--> ERROR: {cmd_root} not recognised, {additional_message}')
+            # endregion
 
     def connection_health(self):
         """
@@ -211,12 +226,15 @@ class Cli:
             return message
 
     def set_context(self, cmd_arg):
-        '''
+        """
         Set all variable necessary to define a context
+
+        TODO transfer most of the responsibility to the future context engine
+            this method should in the future only be use to generate a user output message
 
         :param cmd_arg:
         :return: Formatted message intended to be digested as a user output
-        '''
+        """
         message = '\n-----------|          Context        |-----------\n'
 
         if not cmd_arg:
@@ -248,8 +266,9 @@ class Cli:
         """
             SET context item to default value
 
-            :var context_id:          = "root"
-            :var context_dir:           = ""
+            context_id:          = "root"
+
+            context_dir:           = ""
 
         :return: Formatted message intended to be digested as a user output
         """
@@ -266,7 +285,7 @@ class Cli:
 
             ATTENTION THIS DOESN'T WORK FOR MOST CONSOLE
             PLEASE USE CMD IF YOU WANT TO HAVE
-            AT LEAST A SPRINCLE OF HOPE
+            AT LEAST A SPRINKLE OF HOPE
             OF SEEN THIS THING
             WORK....
 
@@ -281,18 +300,18 @@ class Cli:
         :return: Formatted message intended to be digested as a user output
         """
         message = '\n-------------|     LIST  CONNECTION     |-------------\n'
-        column_widht = 11
+        column_width = 11
         connection_list = get_connection(single=False)  # Single False return a list
         if len(connection_list) > 0:
 
             message += '\n|     ID    | Last Beat |           |           |           |\n'
             for connection in connection_list:
                 if connection:
-                    message += f'\n|{connection.get_id(): ^{column_widht}}' \
-                               f'|{connection.get_health(): ^{column_widht}}' \
-                               f'|{"": ^{column_widht}}' \
-                               f'|{"": ^{column_widht}}' \
-                               f'|{"": ^{column_widht}}|\n'
+                    message += f'\n|{connection.get_id(): ^{column_width}}' \
+                               f'|{connection.get_health(): ^{column_width}}' \
+                               f'|{"": ^{column_width}}' \
+                               f'|{"": ^{column_width}}' \
+                               f'|{"": ^{column_width}}|\n'
         else:
             message += '\n ---> No active connection'
         return message
@@ -300,7 +319,7 @@ class Cli:
     @staticmethod
     def parse_input(command: str):
         """
-        TODO REPLACE WITH PARSE_COMMAND AS IT IS A MORE POWERFULL VERSION OF THIS AND ANY TIME GAIN WONT BE FEEL
+        TODO REPLACE WITH PARSE_COMMAND AS IT IS A MORE POWERFUL VERSION OF THIS AND ANY TIME GAIN WONT BE FEEL
         Parse an input in is tuple
 
         This tuple is constituted of the input root and the input tail
@@ -385,21 +404,22 @@ class Cli:
         message = '\n-----------|           HELP          |-----------\n'
         # TODO -> HELP for specified command
         message_dic = {
-            'help, h': 'Print this message',
-            'exit, quit': 'Exit current context',
-            'clear, cls': 'Clear console, doesn\'t work with pycharm and other software',
-            'list, lst, ls': 'List all know connection',
-            'connect, context, link': 'Set a context to target connection',
-            'execute, exec, :': 'Send a command to the connection object to be execute'
+            # dict is double-quoted to allow (doesn't) without having to use \'
+            "help, h": "Print this message",
+            "exit, quit": "Exit current context",
+            "clear, cls": "Clear console, doesn't work with pycharm and other software",
+            "list, lst, ls": "List all know connection",
+            "connect, context, link": "Set a context to target connection",
+            "execute, exec, :": "Send a command to the connection object to be execute"
 
         }
-        lenght = 0
+        length = 0
         for key in message_dic.keys():
-            if len(key) > lenght:
-                lenght = len(key)
+            if len(key) > length:
+                length = len(key)
         for key in message_dic.keys():
             val = message_dic[key]
-            message += f'\n{key}{" " * (padding + lenght - len(key))}{val}'
+            message += f'\n{key}{" " * (padding + length - len(key))}{val}'
         return message
 
 
