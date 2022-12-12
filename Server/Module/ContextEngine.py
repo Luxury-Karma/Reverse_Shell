@@ -71,6 +71,45 @@ sock_handler: CoHa.SocketHandler
 # wip>                          3 - Disconnect incoming external engine connection
 # wip>                          5 - Send context
 
+class ContextEngine:
+
+    def new_context(self):
+        return -1
+
+    def del_context(self):
+        return -1
+
+    def get_context(self):
+        return -1
+
+    def new_reference(self):
+        return -1
+
+    def del_reference(self):
+        return -1
+
+    def del_from_reference(self):
+        return -1
+
+    def query_reference(self):
+        return -1
+
+    def query_from_reference(self):
+        return -1
+
+    def save_reference(self):
+        return -1
+
+    def load_reference(selfs):
+        return -1
+
+class Context:
+    def __init__(self):
+        pass
+    def __del__(self):
+        return -1
+
+
 
 def get_connection(_id=None, single=False):
     """
