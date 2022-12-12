@@ -72,6 +72,8 @@ sock_handler: CoHa.SocketHandler
 # wip>                          5 - Send context
 
 class ContextEngine:
+    def get_root_context(self):
+        return -1
 
     def new_context(self):
         return -1
