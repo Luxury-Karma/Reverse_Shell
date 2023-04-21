@@ -1,0 +1,3 @@
+[submodule "Client/Encryption_Computer"]
+	path = Client/Encryption_Computer
+	url = https://github.com/Luxury-Karma/Encryption_Computer
